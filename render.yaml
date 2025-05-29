@@ -1,0 +1,16 @@
+services:
+  - type: web
+    name: autoiq-fastapi
+    env: python
+    plan: free
+    buildCommand: ""
+    startCommand: ./start.sh
+    runtime: python
+    region: oregon
+    branch: main
+    repo: https://github.com/snehasawant02/autoiq-fastapi
+    envVars:
+      - key: DATABASE_URL
+        value: postgresql://postgres:root@localhost:5433/auto_iq_db
+      - key: MONGO_URI
+        value: mongodb://localhost:27017

@@ -1,0 +1,34 @@
+# Python bytecode and environment
+__pycache__/
+*.py[cod]
+*.egg-info/
+.env
+venv/
+myenv/
+env/
+
+# Jupyter/IPython
+.ipynb_checkpoints/
+
+# OS Files
+.DS_Store
+Thumbs.db
+
+# Data & logs
+data/
+*.log
+
+# IDEs
+.vscode/
+.idea/
+
+# Deployment-related
+start.sh (optional, if you generate it dynamically)
+render.yaml (optional, if it has secrets)
+
+# Large files
+*.xlsx
+*.csv
+*.bak
+*.zip
+*.tar.gz

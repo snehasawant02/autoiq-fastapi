@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Dashboard</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body class="container py-5">
+    <h2 class="text-center mb-4">📊 AutoIQ Dashboard</h2>
+    <div class="row">
+        <div class="col-md-6">
+            <h4>Lead Category</h4>
+            <canvas id="leadPie"></canvas>
+        </div>
+        <div class="col-md-6">
+            <h4>Sentiment</h4>
+            <canvas id="sentimentPie"></canvas>
+        </div>
+    </div>
+    <script>
+        const leadData = {{ lead_data | tojson }};
+        const sentimentData = {{ sentiment_data | tojson }};
+
+        new Chart(document.getElementById('leadPie'), {
+            type: 'pie',
+            data: {
+                labels: Object.keys(leadData),
+                datasets: [{
+                    data: Object.values(leadData),
+                    backgroundColor: ['#4caf50', '#ff9800', '#f44336'],
+                }]
+            }
+        });
+
+        new Chart(document.getElementById('sentimentPie'), {
+            type: 'pie',
+            data: {
+                labels: Object.keys(sentimentData),
+                datasets: [{
+                    data: Object.values(sentimentData),
+                    backgroundColor: ['#2196f3', '#e91e63', '#9e9e9e'],
+                }]
+            }
+        });
+    </script>
+</body>
+</html>
