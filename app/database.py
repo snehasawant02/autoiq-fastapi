@@ -56,5 +56,5 @@ mongo_collection = mongo_db["upload_data"]
 # # 5. Create the table
 # Base.metadata.create_all(bind=engine)
 
-# print("✅ PostgreSQL table 'upload_data' created successfully.")
+# print(" PostgreSQL table 'upload_data' created successfully.")
 
