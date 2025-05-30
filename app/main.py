@@ -93,10 +93,11 @@ def upload_file(
    
             sql_db.commit()  #  outside the loop
     
-            sql_db.commit()  # outside the loop
+        
     
             
-            mongo_client = os.getenv("MONGO_URI")
+            MONGO_URI = os.getenv("MONGO_URI")
+            mongo_client = MongoClient(MONGO_URI)
             mongo_db = mongo_client["auto_iq_db"]
             mongo_collection = mongo_db["upload_data"]
                     # Save to MongoDB
@@ -104,7 +105,7 @@ def upload_file(
    
             print(" /upload called")
 
-            print("/upload called")
+  
    
 
             return JSONResponse(content={"preview": df.head(10).to_dict(orient="records")})
