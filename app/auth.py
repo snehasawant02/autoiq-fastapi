@@ -16,7 +16,7 @@ ALGORITHM = "HS256"
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="login")
 
-client = MongoClient("mongodb://localhost:27017")
+client = os.getenv("MONGO_URI") 
 db = client["auto_iq_db"]
 users_col = db["users"]
 
