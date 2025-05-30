@@ -2,10 +2,11 @@ from sqlalchemy import create_engine, Column, Integer, String, Float
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 from pymongo import MongoClient
+import os
 
 # --- PostgreSQL Setup ---
-DATABASE_URL = "postgresql://postgres:root@localhost:5433/auto_iq_db"
-
+# DATABASE_URL = "postgresql://postgres:root@localhost:5433/auto_iq_db"
+DATABASE_URL = os.getenv("DATABASE_URL")
 engine = create_engine(DATABASE_URL)
 SessionLocal = sessionmaker(bind=engine)
 Base = declarative_base()
@@ -24,7 +25,9 @@ class UploadData(Base):
 
 
 # --- MongoDB Setup ---
-MONGO_URI = "mongodb://localhost:27017"
+# MONGO_URI = "mongodb+srv://sneha123:sneha123@cluster0.ry1nlph.mongodb.net/auto_iq_db"
+# mongo_client = MongoClient(MONGO_URI)
+MONGO_URI = os.getenv("MONGO_URI")  # ✅ Loaded from Render
 mongo_client = MongoClient(MONGO_URI)
 mongo_db = mongo_client["auto_iq_db"]
 mongo_collection = mongo_db["upload_data"]

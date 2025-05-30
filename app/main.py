@@ -12,10 +12,11 @@ from fastapi.security import OAuth2PasswordRequestForm
 from datetime import timedelta
 from dotenv import load_dotenv
 import openai
+from pymongo import MongoClient
 load_dotenv()
 openai.api_key = os.getenv("OPENAI_API_KEY")
 
-print("🚀 FastAPI app starting...")
+print("FastAPI app starting...")
 
 from openai import OpenAI
 client1 = OpenAI()
@@ -39,14 +40,14 @@ def home(request: Request):
     return templates.TemplateResponse("login.html", {"request": request})
 # @app.get("/", response_class=HTMLResponse)
 # def home():
-#     return HTMLResponse("<h2>✅ AutoIQ backend is running.</h2>")
+#     return HTMLResponse("<h2> AutoIQ backend is running.</h2>")
 
 
 
 @app.post("/upload")
 def upload_file(
     file: UploadFile = File(...),
-    current_user: dict = Depends(get_current_user)  # 👈 Protect this route
+    current_user: dict = Depends(get_current_user)  #  Protect this route
 ):
     print(f"User {current_user['email']} is uploading a file.")
     file_location = os.path.join(UPLOAD_FOLDER, file.filename)
@@ -85,14 +86,14 @@ def upload_file(
                 sentiment=row.get("Sentiment")
             )
             sql_db.add(record)
-        sql_db.commit()  # ✅ outside the loop
+        sql_db.commit()  # outside the loop
         
-        mongo_client = MongoClient("mongodb://localhost:27017")
+        mongo_client = MongoClient(os.getenv("MONGO_URI"))
         mongo_db = mongo_client["auto_iq_db"]
         mongo_collection = mongo_db["upload_data"]
                 # Save to MongoDB
         mongo_collection.insert_many(df.to_dict("records"))
-        print("📩 /upload called")
+        print("/upload called")
 
         return JSONResponse(content={"preview": df.head(10).to_dict(orient="records")})
     except Exception as e:
@@ -103,7 +104,7 @@ def upload_file(
 def view_data(request: Request, current_user: dict = Depends(get_current_user)):
     sql_db = SessionLocal()
     records = sql_db.query(UploadData).order_by(UploadData.id.desc()).limit(20).all()
-    print("📩 /view data called")
+    print(" /view data called")
 
     return templates.TemplateResponse("view_data.html", {
         "request": request,
@@ -125,7 +126,7 @@ def dashboard(request: Request, current_user: dict = Depends(get_current_user)):
         snt = (row.sentiment or "").split()[0].upper()
         if snt in sentiment_counts:
             sentiment_counts[snt] += 1
-            print("📩 /dashboard called")
+            print(" /dashboard called")
 
     return templates.TemplateResponse("dashboard.html", {
         "request": request,
@@ -137,7 +138,7 @@ def dashboard(request: Request, current_user: dict = Depends(get_current_user)):
 def download_excel():
     db = SessionLocal()
     records = db.query(UploadData).all()
-    print("📩 /download called")
+    print(" /download called")
 
     # Convert to DataFrame
     df = pd.DataFrame([{
@@ -155,7 +156,7 @@ def download_excel():
     return FileResponse(file_path, media_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
                         filename="AutoIQ_Export.xlsx")
 
-client = MongoClient("mongodb://localhost:27017")
+client = MongoClient(os.getenv("MONGO_URI"))
 users_col = client["auto_iq_db"]["users"]
 
 @app.post("/register")
@@ -172,7 +173,7 @@ def register_user(
         "password": hashed_password,
         "role": role
     })
-    print("📩 /register called")
+    print(" /register called")
 
     return {"message": "User registered successfully"}
 
@@ -222,14 +223,14 @@ def login_page(request: Request):
 
 @app.post("/login-form")
 def login_form_submit(username: str = Form(...), password: str = Form(...)):
-    print("🚀 Login form submitted")
+    print(" Login form submitted")
     user = authenticate_user(username, password)
     if not user:
-        print("❌ Invalid credentials")
+        print(" Invalid credentials")
         return HTMLResponse("<h3>Invalid credentials</h3>", status_code=401)
 
     token = create_access_token(data={"sub": str(user['_id'])})
-    print("✅ Token created")
+    print(" Token created")
     role = user['role']
     if role == "admin":
         response = RedirectResponse(url="/dashboard", status_code=302)

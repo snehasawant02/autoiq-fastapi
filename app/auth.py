@@ -60,7 +60,7 @@ def get_current_user(request: Request):
         user = users_col.find_one({"_id": ObjectId(user_id)})
         if user is None:
             raise HTTPException(status_code=401, detail="User not found")
-        return user  # ✅ now contains full email, role, etc.
+        return user  #  now contains full email, role, etc.
     except JWTError:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
