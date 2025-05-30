@@ -12,10 +12,15 @@ from fastapi.security import OAuth2PasswordRequestForm
 from datetime import timedelta
 from dotenv import load_dotenv
 import openai
+from pymongo import MongoClient
 load_dotenv()
 openai.api_key = os.getenv("OPENAI_API_KEY")
 
+
 print(" FastAPI app starting...")
+
+print("FastAPI app starting...")
+
 
 from openai import OpenAI
 client1 = OpenAI()
@@ -53,50 +58,58 @@ def upload_file(
     with open(file_location, "wb+") as f:
         f.write(file.file.read())
 
-    try:
-        df = pd.read_csv(file_location) if file.filename.endswith(".csv") else pd.read_excel(file_location)
+        try:
+            df = pd.read_csv(file_location) if file.filename.endswith(".csv") else pd.read_excel(file_location)
 
-        info = {
-            "columns": df.columns.tolist(),
-            "shape": df.shape,
-            "summary": df.describe(include='all').to_dict()
-        }
+            info = {
+                "columns": df.columns.tolist(),
+                "shape": df.shape,
+                "summary": df.describe(include='all').to_dict()
+            }
 
-        if 'sales' in df.columns:
-            from app.ml.lead_classifier import predict_lead_category
-            df['Lead Category'] = predict_lead_category(df['sales'])
+            if 'sales' in df.columns:
+                from app.ml.lead_classifier import predict_lead_category
+                df['Lead Category'] = predict_lead_category(df['sales'])
 
-        if 'comments' in df.columns:
-            from app.nlp.text_analysis import extract_keywords
-            df['Top Keywords'] = df['comments'].apply(lambda text: extract_keywords(text))
-            from app.ml.sentiment_model import predict_sentiment
-            df['Sentiment'] = df['comments'].apply(lambda text: predict_sentiment(text))
+            if 'comments' in df.columns:
+                from app.nlp.text_analysis import extract_keywords
+                df['Top Keywords'] = df['comments'].apply(lambda text: extract_keywords(text))
+                from app.ml.sentiment_model import predict_sentiment
+                df['Sentiment'] = df['comments'].apply(lambda text: predict_sentiment(text))
 
-        df.to_csv(os.path.join(UPLOAD_FOLDER, "processed_" + file.filename), index=False)
-        # Save to PostgreSQL
-        sql_db = SessionLocal()
-        for _, row in df.iterrows():
-            record = UploadData(
-                name=row.get("name"),
-                sales=row.get("sales"),
-                comments=row.get("comments"),
-                lead_category=row.get("Lead Category"),
-                keywords=row.get("Top Keywords"),
-                sentiment=row.get("Sentiment")
-            )
-            sql_db.add(record)
-        sql_db.commit()  #  outside the loop
-        
-        mongo_client = MongoClient("mongodb://localhost:27017")
-        mongo_db = mongo_client["auto_iq_db"]
-        mongo_collection = mongo_db["upload_data"]
-                # Save to MongoDB
-        mongo_collection.insert_many(df.to_dict("records"))
-        print(" /upload called")
+            df.to_csv(os.path.join(UPLOAD_FOLDER, "processed_" + file.filename), index=False)
+            # Save to PostgreSQL
+            sql_db = SessionLocal()
+            for _, row in df.iterrows():
+                record = UploadData(
+                    name=row.get("name"),
+                    sales=row.get("sales"),
+                    comments=row.get("comments"),
+                    lead_category=row.get("Lead Category"),
+                    keywords=row.get("Top Keywords"),
+                    sentiment=row.get("Sentiment")
+                )
+                sql_db.add(record)
+   
+            sql_db.commit()  #  outside the loop
+    
+            sql_db.commit()  # outside the loop
+    
+            
+            mongo_client = os.getenv("MONGO_URI")
+            mongo_db = mongo_client["auto_iq_db"]
+            mongo_collection = mongo_db["upload_data"]
+                    # Save to MongoDB
+            mongo_collection.insert_many(df.to_dict("records"))
+   
+            print(" /upload called")
 
-        return JSONResponse(content={"preview": df.head(10).to_dict(orient="records")})
-    except Exception as e:
-        return JSONResponse(content={"error": str(e)}, status_code=400)
+            print("/upload called")
+   
+
+            return JSONResponse(content={"preview": df.head(10).to_dict(orient="records")})
+        except Exception as e:
+            return JSONResponse(content={"error": str(e)}, status_code=400)
 
 
 @app.get("/view-data", response_class=HTMLResponse)
@@ -155,7 +168,7 @@ def download_excel():
     return FileResponse(file_path, media_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
                         filename="AutoIQ_Export.xlsx")
 
-client = MongoClient("mongodb://localhost:27017")
+client = MongoClient(os.getenv("MONGO_URI"))
 users_col = client["auto_iq_db"]["users"]
 
 @app.post("/register")
