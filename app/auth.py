@@ -6,9 +6,10 @@ from datetime import datetime, timedelta
 from pymongo import MongoClient
 from bson.objectid import ObjectId
 from fastapi import Cookie
-import os
+import os 
 
-
+from dotenv import load_dotenv
+load_dotenv()
 SECRET_KEY = "auto_iq_secret"
 ALGORITHM = "HS256"
 # ACCESS_TOKEN_EXPIRE_MINUTES = 30
@@ -16,7 +17,8 @@ ALGORITHM = "HS256"
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="login")
 
-client = os.getenv("MONGO_URI") 
+MONGO_URI = os.getenv("MONGO_URI")  # this is a string
+client = MongoClient(MONGO_URI)     # ✅ create actual MongoDB client
 db = client["auto_iq_db"]
 users_col = db["users"]
 
