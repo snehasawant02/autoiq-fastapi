@@ -27,6 +27,8 @@ client1 = OpenAI()
 
 app = FastAPI()
 
+UPLOAD_FOLDER = "data"
+os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
 
 @app.on_event("startup")
