@@ -17,7 +17,7 @@ load_dotenv()
 openai.api_key = os.getenv("OPENAI_API_KEY")
 
 
-print(" FastAPI app starting...")
+
 
 print("FastAPI app starting...")
 
