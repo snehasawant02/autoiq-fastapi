@@ -21,6 +21,9 @@ print("FastAPI app starting...")
 from openai import OpenAI
 client1 = OpenAI()
 
+
+UPLOAD_FOLDER = "data"
+os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 app = FastAPI()
 
 
@@ -32,8 +35,6 @@ def startup_event():
 app.mount("/static", StaticFiles(directory="static"), name="static")
 templates = Jinja2Templates(directory="templates")
 
-UPLOAD_FOLDER = "data"
-os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
 @app.get("/", response_class=HTMLResponse)
 def home(request: Request):
