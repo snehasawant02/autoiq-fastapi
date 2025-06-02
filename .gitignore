@@ -14,9 +14,6 @@ env/
 .DS_Store
 Thumbs.db
 
-# Data & logs
-data/
-*.log
 
 # IDEs
 .vscode/
@@ -32,3 +29,8 @@ render.yaml (optional, if it has secrets)
 *.bak
 *.zip
 *.tar.gz
+# Data & logs
+data/
+*.log
+data/*
+!data/.gitkeep
