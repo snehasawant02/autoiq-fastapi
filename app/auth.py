@@ -6,6 +6,9 @@ from datetime import datetime, timedelta
 from pymongo import MongoClient
 from bson.objectid import ObjectId
 from fastapi import Cookie
+from dotenv import load_dotenv
+import os
+from pymongo import MongoClient
 
 
 
@@ -16,7 +19,8 @@ ALGORITHM = "HS256"
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="login")
 
-client = MongoClient("mongodb://localhost:27017")
+MONGO_URI = os.getenv("MONGO_URI")
+client = MongoClient(MONGO_URI)
 db = client["auto_iq_db"]
 users_col = db["users"]
 
