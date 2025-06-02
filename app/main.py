@@ -13,7 +13,7 @@ from datetime import timedelta
 from dotenv import load_dotenv
 import openai
 from pymongo import MongoClient
-load_dotenv()
+
 openai.api_key = os.getenv("OPENAI_API_KEY")
 
 print("FastAPI app starting...")
@@ -24,7 +24,7 @@ client1 = OpenAI()
 app = FastAPI()
 
 
-
+load_dotenv()
 @app.on_event("startup")
 def startup_event():
     Base.metadata.create_all(bind=engine)
