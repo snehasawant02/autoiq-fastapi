@@ -1,10 +1,10 @@
-from fastapi import FastAPI, UploadFile, File, Request,Depends, HTTPException, Form,status
-from fastapi.responses import HTMLResponse, JSONResponse,FileResponse,RedirectResponse
+from fastapi import FastAPI, UploadFile, File, Request, Depends, HTTPException, Form, status
+from fastapi.responses import HTMLResponse, JSONResponse, FileResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 import pandas as pd
 import os
-from app.database import SessionLocal, UploadData,Base, engine
+from app.database import SessionLocal, UploadData, Base, engine
 from pymongo import MongoClient
 import pandas as pd
 from app.auth import authenticate_user, create_access_token, get_password_hash, get_current_user
@@ -15,7 +15,9 @@ from openai import OpenAI
 import openai
 from pymongo import MongoClient
 import logging
+
 load_dotenv()
+
 # Configure logging
 logging.basicConfig(
     level=logging.INFO,  # Change to DEBUG for more detail
@@ -24,19 +26,15 @@ logging.basicConfig(
 
 logger = logging.getLogger(__name__)
 
-
-
-
-
 openai.api_key = os.getenv("OPENAI_API_KEY")
-
-
 
 client1 = OpenAI()
 
-
 UPLOAD_FOLDER = "data"
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+for folder in ["data", "processed", "exports"]:
+    os.makedirs(folder, exist_ok=True)
+
 app = FastAPI()
 
 logger.info("FastAPI app starting...")
@@ -46,6 +44,7 @@ logger.info("FastAPI app starting...")
 def startup_event():
     Base.metadata.create_all(bind=engine)
 
+
 app.mount("/static", StaticFiles(directory="static"), name="static")
 templates = Jinja2Templates(directory="templates")
 
@@ -53,16 +52,17 @@ templates = Jinja2Templates(directory="templates")
 @app.get("/", response_class=HTMLResponse)
 def home(request: Request):
     return templates.TemplateResponse("login.html", {"request": request})
+
+
 # @app.get("/", response_class=HTMLResponse)
 # def home():
 #     return HTMLResponse("<h2> AutoIQ backend is running.</h2>")
 
 
-
 @app.post("/upload")
 def upload_file(
     file: UploadFile = File(...),
-    current_user: dict = Depends(get_current_user)  #  Protect this route
+    current_user: dict = Depends(get_current_user)  # Protect this route
 ):
     logger.info(f"User {current_user['email']} is uploading a file.")
     file_location = os.path.join(UPLOAD_FOLDER, file.filename)
@@ -89,6 +89,7 @@ def upload_file(
             df['Sentiment'] = df['comments'].apply(lambda text: predict_sentiment(text))
 
         df.to_csv(os.path.join(UPLOAD_FOLDER, "processed_" + file.filename), index=False)
+        
         # Save to PostgreSQL
         sql_db = SessionLocal()
         for _, row in df.iterrows():
@@ -106,7 +107,7 @@ def upload_file(
         mongo_client = MongoClient(os.getenv("MONGO_URI"))
         mongo_db = mongo_client["auto_iq_db"]
         mongo_collection = mongo_db["upload_data"]
-                # Save to MongoDB
+        # Save to MongoDB
         mongo_collection.insert_many(df.to_dict("records"))
         logger.info("/upload called")
 
@@ -120,12 +121,14 @@ def upload_file(
 def view_data(request: Request, current_user: dict = Depends(get_current_user)):
     sql_db = SessionLocal()
     records = sql_db.query(UploadData).order_by(UploadData.id.desc()).limit(20).all()
-    logger.info(" /view data called")
+    logger.info("/view data called")
 
     return templates.TemplateResponse("view_data.html", {
         "request": request,
         "records": records
     })
+
+
 @app.get("/dashboard", response_class=HTMLResponse)
 def dashboard(request: Request, current_user: dict = Depends(get_current_user)):
     db = SessionLocal()
@@ -142,7 +145,8 @@ def dashboard(request: Request, current_user: dict = Depends(get_current_user)):
         snt = (row.sentiment or "").split()[0].upper()
         if snt in sentiment_counts:
             sentiment_counts[snt] += 1
-            logger.info(" /dashboard called")
+    
+    logger.info("/dashboard called")
 
     return templates.TemplateResponse("dashboard.html", {
         "request": request,
@@ -150,11 +154,12 @@ def dashboard(request: Request, current_user: dict = Depends(get_current_user)):
         "sentiment_data": sentiment_counts
     })
 
+
 @app.get("/download-excel")
 def download_excel():
     db = SessionLocal()
     records = db.query(UploadData).all()
-    logger.info(" /download called")
+    logger.info("/download called")
 
     # Convert to DataFrame
     df = pd.DataFrame([{
@@ -172,8 +177,10 @@ def download_excel():
     return FileResponse(file_path, media_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
                         filename="AutoIQ_Export.xlsx")
 
+
 client = MongoClient(os.getenv("MONGO_URI"))
 users_col = client["auto_iq_db"]["users"]
+
 
 @app.post("/register")
 def register_user(
@@ -189,9 +196,10 @@ def register_user(
         "password": hashed_password,
         "role": role
     })
-    logger.info(" /register called")
+    logger.info("/register called")
 
     return {"message": "User registered successfully"}
+
 
 @app.post("/login")
 def login(form_data: OAuth2PasswordRequestForm = Depends()):
@@ -200,10 +208,14 @@ def login(form_data: OAuth2PasswordRequestForm = Depends()):
         raise HTTPException(status_code=400, detail="Invalid credentials")
     token = create_access_token(data={"sub": str(user["_id"])}, expires_delta=timedelta(minutes=30))
     return {"access_token": token, "token_type": "bearer"}
+
+
 @app.post("/logout")
 def logout():
     # Inform frontend to delete token (no real backend logout here unless blacklisting is used)
     return {"message": "Logout successful. Please delete your token on the client side."}
+
+
 # or paste key directly for testing
 
 @app.get("/summary")
@@ -232,6 +244,8 @@ def generate_feedback_summary():
 
     except Exception as e:
         return {"error": str(e)}
+
+
 @app.get("/login-form", response_class=HTMLResponse)
 def login_page(request: Request):
     return templates.TemplateResponse("login.html", {"request": request})
@@ -239,14 +253,14 @@ def login_page(request: Request):
 
 @app.post("/login-form")
 def login_form_submit(username: str = Form(...), password: str = Form(...)):
-    logger.info(" Login form submitted")
+    logger.info("Login form submitted")
     user = authenticate_user(username, password)
     if not user:
-        print(" Invalid credentials")
+        print("Invalid credentials")
         return HTMLResponse("<h3>Invalid credentials</h3>", status_code=401)
 
     token = create_access_token(data={"sub": str(user['_id'])})
-    logger.info(" Token created")
+    logger.info("Token created")
     role = user['role']
     if role == "admin":
         response = RedirectResponse(url="/dashboard", status_code=302)
@@ -255,9 +269,11 @@ def login_form_submit(username: str = Form(...), password: str = Form(...)):
     response.set_cookie(key="access_token", value=token, httponly=True)
     return response
 
+
 @app.get("/upload-page", response_class=HTMLResponse)
 def upload_page(request: Request, current_user: dict = Depends(get_current_user)):
     return templates.TemplateResponse("index.html", {"request": request})
+
 
 @app.get("/upload-page", response_class=HTMLResponse)
 def show_upload_page(request: Request, current_user: dict = Depends(get_current_user)):
