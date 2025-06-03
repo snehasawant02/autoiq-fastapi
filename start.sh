@@ -1,3 +1,2 @@
-source myenv/Scripts/activate  
-uvicorn app.main:app --host=0.0.0.0 --port=10000
-
+echo "Starting FastAPI app..."
+uvicorn app.main:app --host 0.0.0.0 --port 10000 --log-level info
