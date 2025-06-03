@@ -111,7 +111,7 @@ def upload_file(
 
         return JSONResponse(content={"preview": df.head(10).to_dict(orient="records")})
     except Exception as e:
-         logger.exception("❌ Error during file upload:")
+        logger.exception("❌ Error during file upload:")
         return JSONResponse(content={"error": str(e)}, status_code=400)
 
 
