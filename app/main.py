@@ -12,6 +12,7 @@ from fastapi.security import OAuth2PasswordRequestForm
 from datetime import timedelta
 from dotenv import load_dotenv
 from openai import OpenAI
+import openai
 from pymongo import MongoClient
 import logging
 load_dotenv()
