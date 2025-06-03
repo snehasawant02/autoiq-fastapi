@@ -11,14 +11,26 @@ from app.auth import authenticate_user, create_access_token, get_password_hash, 
 from fastapi.security import OAuth2PasswordRequestForm
 from datetime import timedelta
 from dotenv import load_dotenv
-import openai
+from openai import OpenAI
 from pymongo import MongoClient
+import logging
+load_dotenv()
+# Configure logging
+logging.basicConfig(
+    level=logging.INFO,  # Change to DEBUG for more detail
+    format="%(asctime)s - %(levelname)s - %(message)s"
+)
+
+logger = logging.getLogger(__name__)
+
+
+
+
 
 openai.api_key = os.getenv("OPENAI_API_KEY")
 
-print("FastAPI app starting...")
 
-from openai import OpenAI
+
 client1 = OpenAI()
 
 
@@ -26,8 +38,9 @@ UPLOAD_FOLDER = "data"
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 app = FastAPI()
 
+logger.info("FastAPI app starting...")
 
-load_dotenv()
+
 @app.on_event("startup")
 def startup_event():
     Base.metadata.create_all(bind=engine)
@@ -50,7 +63,7 @@ def upload_file(
     file: UploadFile = File(...),
     current_user: dict = Depends(get_current_user)  #  Protect this route
 ):
-    print(f"User {current_user['email']} is uploading a file.")
+    logger.info(f"User {current_user['email']} is uploading a file.")
     file_location = os.path.join(UPLOAD_FOLDER, file.filename)
     with open(file_location, "wb+") as f:
         f.write(file.file.read())
@@ -94,10 +107,11 @@ def upload_file(
         mongo_collection = mongo_db["upload_data"]
                 # Save to MongoDB
         mongo_collection.insert_many(df.to_dict("records"))
-        print("/upload called")
+        logger.info("/upload called")
 
         return JSONResponse(content={"preview": df.head(10).to_dict(orient="records")})
     except Exception as e:
+         logger.exception("❌ Error during file upload:")
         return JSONResponse(content={"error": str(e)}, status_code=400)
 
 
@@ -105,7 +119,7 @@ def upload_file(
 def view_data(request: Request, current_user: dict = Depends(get_current_user)):
     sql_db = SessionLocal()
     records = sql_db.query(UploadData).order_by(UploadData.id.desc()).limit(20).all()
-    print(" /view data called")
+    logger.info(" /view data called")
 
     return templates.TemplateResponse("view_data.html", {
         "request": request,
@@ -127,7 +141,7 @@ def dashboard(request: Request, current_user: dict = Depends(get_current_user)):
         snt = (row.sentiment or "").split()[0].upper()
         if snt in sentiment_counts:
             sentiment_counts[snt] += 1
-            print(" /dashboard called")
+            logger.info(" /dashboard called")
 
     return templates.TemplateResponse("dashboard.html", {
         "request": request,
@@ -139,7 +153,7 @@ def dashboard(request: Request, current_user: dict = Depends(get_current_user)):
 def download_excel():
     db = SessionLocal()
     records = db.query(UploadData).all()
-    print(" /download called")
+    logger.info(" /download called")
 
     # Convert to DataFrame
     df = pd.DataFrame([{
@@ -174,7 +188,7 @@ def register_user(
         "password": hashed_password,
         "role": role
     })
-    print(" /register called")
+    logger.info(" /register called")
 
     return {"message": "User registered successfully"}
 
@@ -224,14 +238,14 @@ def login_page(request: Request):
 
 @app.post("/login-form")
 def login_form_submit(username: str = Form(...), password: str = Form(...)):
-    print(" Login form submitted")
+    logger.info(" Login form submitted")
     user = authenticate_user(username, password)
     if not user:
         print(" Invalid credentials")
         return HTMLResponse("<h3>Invalid credentials</h3>", status_code=401)
 
     token = create_access_token(data={"sub": str(user['_id'])})
-    print(" Token created")
+    logger.info(" Token created")
     role = user['role']
     if role == "admin":
         response = RedirectResponse(url="/dashboard", status_code=302)
