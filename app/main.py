@@ -30,10 +30,10 @@ openai.api_key = os.getenv("OPENAI_API_KEY")
 
 client1 = OpenAI()
 
-UPLOAD_FOLDER = "data"
-os.makedirs(UPLOAD_FOLDER, exist_ok=True)
-for folder in ["data", "processed", "exports"]:
+UPLOAD_FOLDER = "/tmp"
+for folder in ["/tmp/data", "/tmp/processed", "/tmp/exports"]:
     os.makedirs(folder, exist_ok=True)
+
 
 app = FastAPI()
 
@@ -60,16 +60,19 @@ def home(request: Request):
 
 
 @app.post("/upload")
-def upload_file(
+async def upload_file(
     file: UploadFile = File(...),
-    current_user: dict = Depends(get_current_user)  # Protect this route
+    current_user: dict = Depends(get_current_user)
 ):
     logger.info(f"User {current_user['email']} is uploading a file.")
-    file_location = os.path.join(UPLOAD_FOLDER, file.filename)
-    with open(file_location, "wb+") as f:
-        f.write(file.file.read())
 
     try:
+        contents = await file.read()
+        file_location = os.path.join("/tmp", file.filename)
+
+        with open(file_location, "wb") as f:
+            f.write(contents)
+
         df = pd.read_csv(file_location) if file.filename.endswith(".csv") else pd.read_excel(file_location)
 
         info = {
@@ -88,7 +91,8 @@ def upload_file(
             from app.ml.sentiment_model import predict_sentiment
             df['Sentiment'] = df['comments'].apply(lambda text: predict_sentiment(text))
 
-        df.to_csv(os.path.join(UPLOAD_FOLDER, "processed_" + file.filename), index=False)
+        
+        df.to_csv(os.path.join("/tmp", "processed_" + file.filename), index=False)
         
         # Save to PostgreSQL
         sql_db = SessionLocal()
@@ -102,21 +106,18 @@ def upload_file(
                 sentiment=row.get("Sentiment")
             )
             sql_db.add(record)
-        sql_db.commit()  # outside the loop
-        
+        sql_db.commit()
+
         mongo_client = MongoClient(os.getenv("MONGO_URI"))
         mongo_db = mongo_client["auto_iq_db"]
         mongo_collection = mongo_db["upload_data"]
-        # Save to MongoDB
         mongo_collection.insert_many(df.to_dict("records"))
-        logger.info("/upload called")
 
         return JSONResponse(content={"preview": df.head(10).to_dict(orient="records")})
+
     except Exception as e:
-        logger.exception("❌ Error during file upload:")
-        return JSONResponse(content={"error": str(e)}, status_code=400)
-
-
+        logger.exception("Upload failed")
+        return JSONResponse(content={"error": str(e)}, status_code=500)
 @app.get("/view-data", response_class=HTMLResponse)
 def view_data(request: Request, current_user: dict = Depends(get_current_user)):
     sql_db = SessionLocal()
